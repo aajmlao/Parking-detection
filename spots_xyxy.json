@@ -1,0 +1,12 @@
+[   
+    {"id":"stall_favorite", "coord":[300, 180, 450, 220]},
+    {"id":"stall_21_flo", "coord":[345, 145, 420, 178]},
+    {"id":"stall_52_flo", "coord":[365, 115,422, 145]},
+    {"id":"stall_21_bru", "coord":[645, 210, 734, 235]},
+    {"id":"stall_51_flo", "coord":[420, 145, 502, 179]},
+    {"id":"stall_22_bru", "coord":[733, 204, 783, 235]},
+    {"id":"stall_51_bru", "coord":[929, 275, 972, 295]},
+    {"id":"stall_23_bru", "coord":[809, 213, 851, 240]},
+    {"id":"stall_24_bru", "coord":[849, 219, 870, 245]}
+
+]
