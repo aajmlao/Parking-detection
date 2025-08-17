@@ -2,3 +2,5 @@
 *.jpg
 
 myProjectX*
+
+__pycache__
