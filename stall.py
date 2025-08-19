@@ -65,13 +65,14 @@ class Stall:
         previous_pred_time = self.predicted_state_start_time
 
         if previous_pred_state == predicted_state:
-            if now_time - previous_pred_time >= FLIP_STATE_THRESHOLD:
+            delta_t = now_time - previous_pred_time
+            if delta_t >= FLIP_STATE_THRESHOLD:
+                dwll_time = now_time - previous_pred_time
                 self.current_state = predicted_state
                 self.current_state_start_time = now_time
-        
         else:
             self.predicted_state = predicted_state
-
+            self.predicted_state_start_time = now_time
 
     # def get_stall_state(self) -> dict:
     #     return self.stall_state
