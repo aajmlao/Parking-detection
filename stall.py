@@ -7,13 +7,13 @@ class Stall:
         self.stall_coord = single_stall_coordination
         # store the occupied coordination from 
         self.occupied_coord = None
-        
+        # store the state
         self.current_state = None
         self.current_state_start_time = None
         self.predicted_state = None
         self.predicted_state_start_time = None
         
-
+    # helper function
     def __center_in_xyxy(self, object_coordination) -> bool:
         x1, y1, x2, y2 = object_coordination
         center_x = (x1 + x2) // 2
@@ -23,25 +23,58 @@ class Stall:
 
         return (marked_x1 < center_x < marked_x2) and (marked_y1 < center_y < marked_y2)
 
-    def stall_occupation_status(self, objects_coordination): 
-        
+    def stall_occupation_status(self, objects_coordination):
+        NOTIFICATION_THRESHOLD = 3 # second 
+        # True is occupied. False is empty.
         for coord in objects_coordination.astype(int):
             if self.__center_in_xyxy(coord):
                 self.occupied_coord = coord
-                if self.current_state is None:
+                # init the state if the state is none else we need to check the 
+                # state wethere is empty or occupied. All prediction here is 
+                # True 
+                now = time.monotonic()
+                if self.current_state is None and self.predicted_state is None:
                     self.current_state = True
-                else:
                     self.predicted_state = True
-                break
-        # After the checking all predicted objects
-        if self.current_state is None:
-            self.current_state = False
-        else:
-            self.predicted_state = False
- 
-        now = time.monotonic()
-        
+                    
+                    self.current_state_start_time = now
+                    self.predicted_state_start_time = now
+                else:
+                    pass
 
+                break
+        
+        # After the checking all predicted objects
+        now = time.monotonic()
+        if self.current_state is None and self.predicted_state is None:
+            self.current_state = False
+            self.predicted_state = False
+            
+            self.current_state_start_time = now
+            self.predicted_state_start_time = now
+        else:
+            pass        
+
+    # helper function
+    def __update_on_stall(self, now_time, predicted_state):
+        FLIP_STATE_THRESHOLD = 1 # seconde
+        
+        previous_state = self.current_state
+        previous_state_time = self.current_state_start_time
+        previous_pred_state = self.predicted_state
+        previous_pred_time = self.predicted_state_start_time
+
+        if previous_pred_state == predicted_state:
+            if now_time - previous_pred_time >= FLIP_STATE_THRESHOLD:
+                self.current_state = predicted_state
+                self.current_state_start_time = now_time
+        
+        else:
+            self.predicted_state = predicted_state
+
+
+    # def get_stall_state(self) -> dict:
+    #     return self.stall_state
 
     def get_stall_coordination(self) -> list:
         return self.stall_coord
@@ -58,9 +91,3 @@ class Stall:
                         color=color,
                         thickness=2)
         return frame
-
-    def __update_on_stall(self, now_time):
-        pass
-
-    # def get_stall_state(self) -> dict:
-    #     return self.stall_state
