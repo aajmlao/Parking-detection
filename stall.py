@@ -10,8 +10,10 @@ class Stall:
         # store the state
         self.current_state = None
         self.current_state_start_time = None
-        self.predicted_state = None
-        self.predicted_state_start_time = None
+        self.hold_state = None
+        self.previous_time = None
+        self.accumulate_time = 0
+        self.last_flip_state_time = None
         
     # helper function
     def __center_in_xyxy(self, object_coordination) -> bool:
@@ -33,49 +35,60 @@ class Stall:
                 # state wethere is empty or occupied. All prediction here is 
                 # True 
                 now = time.monotonic()
-                if self.current_state is None and self.predicted_state is None:
+                if self.current_state is None:
                     self.current_state = True
-                    self.predicted_state = True
-                    
                     self.current_state_start_time = now
-                    self.predicted_state_start_time = now
                 else:
-                    pass
-
+                    self.__update_on_stall(now, True)
                 break
         
         # After the checking all predicted objects
         now = time.monotonic()
-        if self.current_state is None and self.predicted_state is None:
+        if self.current_state is None:
             self.current_state = False
-            self.predicted_state = False
-            
             self.current_state_start_time = now
-            self.predicted_state_start_time = now
         else:
-            pass        
+            self.__update_on_stall(now, False)     
+
+        # check the parking status.
+           
 
     # helper function
-    def __update_on_stall(self, now_time, predicted_state):
+    def __update_on_stall(self, now, predicted_state):
         FLIP_STATE_THRESHOLD = 1 # seconde
-        
-        previous_state = self.current_state
-        previous_state_time = self.current_state_start_time
-        previous_pred_state = self.predicted_state
-        previous_pred_time = self.predicted_state_start_time
+        STAY_STATE_THRESHOLD = 0.8 # seconde
+        weight = 0.7 # weight more on the equal states 
 
-        if previous_pred_state == predicted_state:
-            delta_t = now_time - previous_pred_time
-            if delta_t >= FLIP_STATE_THRESHOLD:
-                dwll_time = now_time - previous_pred_time
-                self.current_state = predicted_state
-                self.current_state_start_time = now_time
+        delta_t = now - self.previous_time
+        self.previous_time = now
+
+        if self.current_state != predicted_state:
+            if self.hold_state != predicted_state: # when we first encounter the changing state, we hold it
+                self.hold_state = predicted_state 
+            self.accumulate_time = min(FLIP_STATE_THRESHOLD, self.accumulate_time + delta_t) # accumulate time when changing state happens
+            self.last_flip_state_time = now
         else:
-            self.predicted_state = predicted_state
-            self.predicted_state_start_time = now_time
+            self.accumulate_time = self.accumulate_time - delta_t * weight # equaling states weight more. Maybe a mistake
+            if self.accumulate_time < 0:
+                self.accumulate_time = 0 # have a negative accumulate time. minimal value is 0
 
-    # def get_stall_state(self) -> dict:
-    #     return self.stall_state
+            # check if stay in the same state for a while, and reset the value
+            if self.last_flip_state_time is not None:
+                if (now - self.last_flip_state_time) >= STAY_STATE_THRESHOLD:
+                    # reset
+                    self.hold_state = None
+                    self.last_flip_state_time = None
+                    self.accumulate_time = 0
+            
+            # check if changing the state
+            if self.accumulate_time > FLIP_STATE_THRESHOLD and self.hold_state is not None:
+                # commit the change
+                self.accumulate_time = 0
+                self.current_state = predicted_state
+                self.current_state_start_time = now
+                self.hold_state = None
+                self.last_flip_state_time = None
+
 
     def get_stall_coordination(self) -> list:
         return self.stall_coord
